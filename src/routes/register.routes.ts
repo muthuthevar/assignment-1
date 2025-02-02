@@ -125,10 +125,40 @@ router.get("/dashboard/weekly/:userId", async (req: Request, res: Response) => {
     const scores = await scoreModel.aggregate([
       {
         $addFields: {
-          week: {
-            $isoWeek: "$createdAt", // Get the ISO week number of the year
+          // Adjust the date to shift the week to Friday-Thursday
+          adjustedDate: {
+            $let: {
+              vars: {
+                dayOfWeek: { $dayOfWeek: "$createdAt" }, // Get the day of the week (1 = Sunday, 7 = Saturday)
+                createdAt: "$createdAt",
+              },
+              in: {
+                $cond: {
+                  if: { $gte: ["$$dayOfWeek", 6] }, // If it's Friday (6) or Saturday (7)
+                  then: {
+                    $dateSubtract: {
+                      startDate: "$$createdAt",
+                      unit: "day",
+                      amount: { $subtract: ["$$dayOfWeek", 5] },
+                    },
+                  },
+                  else: {
+                    $dateSubtract: {
+                      startDate: "$$createdAt",
+                      unit: "day",
+                      amount: { $subtract: ["$$dayOfWeek", 1] },
+                    },
+                  },
+                },
+              },
+            },
           },
-          year: { $year: "$createdAt" }, // Get the year to differentiate scores across years
+        },
+      },
+      {
+        $addFields: {
+          week: { $isoWeek: "$adjustedDate" }, // Now use adjusted date for the ISO week
+          year: { $year: "$adjustedDate" }, // Get the year from the adjusted date
         },
       },
       {
