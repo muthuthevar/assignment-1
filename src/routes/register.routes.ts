@@ -114,7 +114,6 @@ router.get("/dashboard/weekly/:userId", async (req: Request, res: Response) => {
   const { userId } = req.params;
 
   try {
-    // Validate the user
     const user = await userModel.findById(userId);
     if (!user) {
       res.status(404).json({ msg: "User not found" });
